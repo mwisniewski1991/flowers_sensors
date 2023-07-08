@@ -1,0 +1,38 @@
+services:
+  proxy:
+    build: proxy
+    container_name: fproxy
+    restart: always
+    ports:
+      - 81:80
+    depends_on:
+      - api
+    networks:
+      - flowers_net
+
+  api:
+    build: api
+    container_name: fapi
+    restart: always
+    depends_on:
+      - rabbitmq
+    ports:
+      - 8000:8000
+    networks:
+      - flowers_net
+    volumes:
+      - ./api:/app
+
+  rabbitmq:
+    build: rabbit
+    container_name: frabbit
+    ports:
+       - 5672:5672
+       - 15672:15672
+    networks:
+      - flowers_net
+
+
+
+networks:
+  flowers_net:
