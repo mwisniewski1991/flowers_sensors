@@ -47,9 +47,7 @@ while True:
         temperature = 0
         humidity = 0
         
-    # url = "http://192.168.18.15:81/sensor?id=1234&temeprature=" + str(temperature) + "&humidity=" + str(humidity) + "&moisture=" + str(moisture)
     url = API_URL + "?id=1234&temeprature=" + str(temperature) + "&humidity=" + str(humidity) + "&moisture=" + str(moisture)
-
 
     # print("-------------------------------")
     # print("Moisture: {}".format(moisture))
