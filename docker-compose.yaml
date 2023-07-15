@@ -32,6 +32,30 @@ services:
     networks:
       - flowers_net
 
+  consumer:
+    build: consumer
+    container_name: fconsumer
+    restart: always
+    depends_on:
+      - rabbitmq
+    ports:
+      - 8001:8001
+    networks:
+      - flowers_net
+    volumes:
+      - ./consumer:/app
+
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: finfluxdb
+    restart: always 
+    ports:
+      - 8086:8086
+    volumes:
+      - /home/influxdb2:/var/lib/influxdb2:rw
+    networks:
+      - flowers_net
 
 
 networks:
