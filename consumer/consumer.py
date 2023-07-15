@@ -6,34 +6,37 @@ import time
 import logging
 import influxdb_client
 from influxdb_client.client.write_api import SYNCHRONOUS
+from dotenv import load_dotenv
 
 def connect_influx() -> influxdb_client.InfluxDBClient:
     token = os.environ.get("INFLUXDB_TOKEN")
     org = "mwdev"
     url = "http://0.0.0.0:8086"
 
+    print(token)
+
     return influxdb_client.InfluxDBClient(
             url=url, 
-            token=token, 
+            token=token,
             org=org)
 
 def callback(ch, method, properties, body):
     logging.info(f'Push InfluxDB: {body}')
 
-    id, name, temperature, humidity = json.loads(body)
+    data = json.loads(body)
+    id, name, temperature, humidity = data.values()
 
+    org = "mwdev"
+    bucket="flowers"
+    write_client = connect_influx()
 
-    # org = "mwdev"
-    # bucket="storage"
-    # write_client = connect_influx()
+    write_api = write_client.write_api(write_options=SYNCHRONOUS)
 
-    # write_api = write_client.write_api(write_options=SYNCHRONOUS)
+    humidity_data = influxdb_client.Point("garden").tag('flower', name).field('humidity', float(humidity))
+    temperature_data = influxdb_client.Point("garden").tag('flower', name).field('temperature', float(temperature))
     
-    # humidity_data = influxdb_client.Point("garden").tag('flower', name).field('humidity', humidity)
-    # temperature_data = influxdb_client.Point("garden").tag('flower', name).field('temperature', temperature)
-    
-    # write_api.write(bucket=bucket, org=org, record=humidity_data)
-    # write_api.write(bucket=bucket, org=org, record=temperature_data)
+    write_api.write(bucket=bucket, org=org, record=humidity_data)
+    write_api.write(bucket=bucket, org=org, record=temperature_data)
 
 def main():
     logger = logging.getLogger()
@@ -47,7 +50,7 @@ def main():
     
 
     logging.info("Waiting")
-    time.sleep(20)
+    time.sleep(1)
 
     logging.info("Trying to connect.")
     connection_rabbit = pika.BlockingConnection(pika.ConnectionParameters(
