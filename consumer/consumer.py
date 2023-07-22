@@ -8,56 +8,77 @@ import influxdb_client
 from influxdb_client.client.write_api import SYNCHRONOUS
 from dotenv import load_dotenv
 
-def connect_influx() -> influxdb_client.InfluxDBClient:
-    token = os.environ.get("INFLUXDB_TOKEN")
-    org = "mwdev"
-    url = "http://0.0.0.0:8086"
+def parse_flower_apidata(object: dict) -> list[str]:
+    data = json.loads(object)
+    flower_id, flower_name, temperature, soil_moisture, humidity = data.values()
+    return [flower_id, flower_name, temperature, soil_moisture, humidity]
 
-    print(token)
+def connect_influx() -> influxdb_client.InfluxDBClient:
+    token = os.environ.get("DOCKER_INFLUXDB_INIT_ADMIN_TOKEN")
+    org = os.environ.get("DOCKER_INFLUXDB_INIT_ORG")
+    url = "http://influxdb:8086"
 
     return influxdb_client.InfluxDBClient(
             url=url, 
             token=token,
             org=org)
 
+def create_flower_points(
+        measurement:str, 
+        id:str, 
+        name:str, 
+        temperature:str,
+        soil_moisture:str,
+        humidity:str
+        ) -> list[influxdb_client.Point]:
+
+    temperature_point = influxdb_client.Point(measurement).tag('flower_name', name).tag('flower_id', id).field('temperature', float(temperature))
+    soil_moisture_point = influxdb_client.Point(measurement).tag('flower_name', name).tag('flower_id', id).field('soil_mositure', float(soil_moisture))
+    humidity_point = influxdb_client.Point(measurement).tag('flower_name', name).tag('flower_id', id).field('humidity', float(humidity))
+
+    return [temperature_point, soil_moisture_point, humidity_point]
+
 def callback(ch, method, properties, body):
     logging.info(f'Push InfluxDB: {body}')
 
-    data = json.loads(body)
-    id, name, temperature, humidity = data.values()
+    flower_id, flower_name, temperature, soil_moisture, humidity = parse_flower_apidata(body)
 
-    org = "mwdev"
-    bucket="flowers"
+    org = os.environ.get("DOCKER_INFLUXDB_INIT_ORG")
+    bucket=os.environ.get("DOCKER_INFLUXDB_INIT_BUCKET")
+    
+    measurement=os.environ.get("DOCKER_INFLUXDB_MEASUERMENT")
+
     write_client = connect_influx()
-
     write_api = write_client.write_api(write_options=SYNCHRONOUS)
 
-    humidity_data = influxdb_client.Point("garden").tag('flower', name).field('humidity', float(humidity))
-    temperature_data = influxdb_client.Point("garden").tag('flower', name).field('temperature', float(temperature))
-    
-    write_api.write(bucket=bucket, org=org, record=humidity_data)
-    write_api.write(bucket=bucket, org=org, record=temperature_data)
+    flower_points = create_flower_points(measurement, flower_id, flower_name,  temperature, soil_moisture, humidity)
+
+    for point in flower_points:
+        write_api.write(bucket=bucket, org=org, record=point)
+
+
 
 def main():
     logger = logging.getLogger()
-
     logging.basicConfig(
         level=logging.INFO,
         stream=sys.stdout,
-        format=" [\mwdev/] %(asctime)s %(levelname)s :::: %(message)s",
+        format="[\mwdev/] %(asctime)s %(levelname)s :::: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         )   
     
-
     logging.info("Waiting")
-    time.sleep(1)
+    time.sleep(10)
 
-    logging.info("Trying to connect.")
-    connection_rabbit = pika.BlockingConnection(pika.ConnectionParameters(
-        host='rabbitmq', 
-        port=5672))
-    
-    logging.info("Failed to connect to RabbitMQ service. Message wont be sent.")
+    try:
+        logging.info("Trying to connect.")
+        connection_rabbit = pika.BlockingConnection(pika.ConnectionParameters(
+            host='rabbitmq', 
+            port=5672))
+        
+    except pika.exceptions.AMQPConnectionError:
+        logging.info("Failed to connect to RabbitMQ service. Message wont be sent.")
+        return None
 
     channel = connection_rabbit.channel()
     channel.queue_declare(queue='flowers_data')
