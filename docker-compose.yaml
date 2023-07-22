@@ -44,6 +44,8 @@ services:
       - flowers_net
     volumes:
       - ./consumer:/app
+    env_file:
+      - .env
 
 
   influxdb:
@@ -51,9 +53,12 @@ services:
     container_name: finfluxdb
     restart: always 
     ports:
-      - 8086:8086
+      - ${DOCKER_INFLUXDB_INIT_PORT}:${DOCKER_INFLUXDB_INIT_PORT}
     volumes:
       - /home/influxdb2:/var/lib/influxdb2:rw
+    env_file:
+      - .env
+    entrypoint: ["./entrypoint.sh"]
     networks:
       - flowers_net
 
