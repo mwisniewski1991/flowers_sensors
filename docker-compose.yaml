@@ -47,9 +47,8 @@ services:
     env_file:
       - .env
 
-
   influxdb:
-    image: influxdb:2.7
+    image: influxdb:${INFLUXDB_VERSION}
     container_name: finfluxdb
     restart: always 
     ports:
@@ -59,6 +58,21 @@ services:
     env_file:
       - .env
     entrypoint: ["./entrypoint.sh"]
+    networks:
+      - flowers_net
+
+  gafana:
+    image: grafana/grafana-oss:${GRAFANA_VERSION}
+    container_name: fgrafana
+    restart: always
+    user: '0'
+    ports: 
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_USER=mwdev
+      - GF_SECURITY_ADMIN_PASSWORD=password
+    volumes:
+      - /home/grafana:/var/lib/grafana
     networks:
       - flowers_net
 
