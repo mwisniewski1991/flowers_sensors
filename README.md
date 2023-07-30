@@ -32,5 +32,6 @@ From data in database dashboard will create charts.
 - Create Consumer - DONE
 - Create InfluxDB Container - DONE
 - Connect consumeer with InfluxDB - DONE
-- Create Grafana conteiner
-- Connect Grafana to Influxdb
+- Create Grafana conteiner - DONE
+- Connect Grafana to Influxdb - DONE
+- API authentication - IN PROGRESS
