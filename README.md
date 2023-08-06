@@ -34,4 +34,6 @@ From data in database dashboard will create charts.
 - Connect consumeer with InfluxDB - DONE
 - Create Grafana conteiner - DONE
 - Connect Grafana to Influxdb - DONE
-- API authentication - IN PROGRESS
+- Sensors errors - IN PROGRESS
+- Powering PICO from batteries - IN PROGRESS
+- API authentication
