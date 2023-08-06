@@ -31,7 +31,7 @@ adc = ADC(26)
 conversion_factor = 100 / (65535)
 
 while True:
-    time.sleep(5)
+    time.sleep(10)
 
     led.toggle()
     moisture = 130 - (adc.read_u16() * conversion_factor)
@@ -44,16 +44,17 @@ while True:
 
     except:
         print("ERROR FOR SENSOR")
-        temperature = 0
-        humidity = 0
+        temperature = -1.0
+        humidity = -1.0
         
-    url = API_URL + "?id=1234&temeprature=" + str(temperature) + "&humidity=" + str(humidity) + "&moisture=" + str(moisture)
+    url = API_URL + "?id=1234&name=flower_1&temeprature=" + str(temperature) + "&soil_moisture=" + str(moisture) + "&humidity=" + str(humidity) 
 
     # print("-------------------------------")
     # print("Moisture: {}".format(moisture))
     # print("Temperature: {}".format(temperature))
     # print("Humidity: {}".format(humidity))
-
+    
+    # print(url)
     r = urequests.get(url)
     print(r.json())
     r.close()
