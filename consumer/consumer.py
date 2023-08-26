@@ -5,11 +5,21 @@ import json
 import time
 import logging
 import influxdb_client
+from kafka import KafkaConsumer
 from influxdb_client.client.write_api import SYNCHRONOUS
 from dotenv import load_dotenv
 
-def parse_flower_apidata(object: dict) -> list[str]:
-    data = json.loads(object)
+KAFKA_FLOWERS_TOPIC = "flowers_data"
+
+logger = logging.getLogger()
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stdout,
+    format="[\mwdev/] %(asctime)s %(levelname)s :::: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    )   
+
+def parse_flower_apidata(data: dict) -> list[str]:
     flower_id, flower_name, temperature, soil_moisture, humidity = data.values()
     return [flower_id, flower_name, temperature, soil_moisture, humidity]
 
@@ -38,10 +48,10 @@ def create_flower_points(
 
     return [temperature_point, soil_moisture_point, humidity_point]
 
-def callback(ch, method, properties, body):
-    logging.info(f'Push InfluxDB: {body}')
+def save_to_influxdb(flower_data: str) -> None:
+    logging.info(f'Push InfluxDB: {flower_data}')
 
-    flower_id, flower_name, temperature, soil_moisture, humidity = parse_flower_apidata(body)
+    flower_id, flower_name, temperature, soil_moisture, humidity = parse_flower_apidata(flower_data)
 
     org = os.environ.get("DOCKER_INFLUXDB_INIT_ORG")
     bucket=os.environ.get("DOCKER_INFLUXDB_INIT_BUCKET")
@@ -56,37 +66,21 @@ def callback(ch, method, properties, body):
     for point in flower_points:
         write_api.write(bucket=bucket, org=org, record=point)
 
-
-
 def main():
-    logger = logging.getLogger()
-    logging.basicConfig(
-        level=logging.INFO,
-        stream=sys.stdout,
-        format="[\mwdev/] %(asctime)s %(levelname)s :::: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        )   
-    
+
     logging.info("Waiting")
     time.sleep(10)
 
-    try:
-        logging.info("Trying to connect.")
-        connection_rabbit = pika.BlockingConnection(pika.ConnectionParameters(
-            host='rabbitmq', 
-            port=5672))
-        
-    except pika.exceptions.AMQPConnectionError:
-        logging.info("Failed to connect to RabbitMQ service. Message wont be sent.")
-        return None
+    consumer = KafkaConsumer(
+        KAFKA_FLOWERS_TOPIC, 
+        bootstrap_servers="kafka:29092")
 
-    channel = connection_rabbit.channel()
-    channel.queue_declare(queue='flowers_data')
-    channel.basic_consume(queue='flowers_data', on_message_callback=callback)
-    
     logging.info('Waiting for messages. To exit press CTRL+C')
-    channel.start_consuming()
 
+    while True:
+        for message in consumer:
+            consumed_message = json.loads(message.value.decode())
+            save_to_influxdb(consumed_message)
 
 if __name__ == '__main__':
     try:
