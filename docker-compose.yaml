@@ -15,7 +15,7 @@ services:
     container_name: fapi
     restart: always
     depends_on:
-      - rabbitmq
+      - kafka
     ports:
       - 8000:8000
     networks:
@@ -23,12 +23,30 @@ services:
     volumes:
       - ./api:/app
 
-  rabbitmq:
-    build: rabbit
-    container_name: frabbit
+  zookeeper:
+    container_name: fzookeeper
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     ports:
-       - 5672:5672
-       - 15672:15672
+      - 22181:2181
+    networks:
+      - flowers_net
+  
+  kafka:
+    container_name: fkafka
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
     networks:
       - flowers_net
 
@@ -37,7 +55,7 @@ services:
     container_name: fconsumer
     restart: always
     depends_on:
-      - rabbitmq
+      - kafka
     ports:
       - 8001:8001
     networks:
@@ -75,7 +93,6 @@ services:
       - /home/grafana:/var/lib/grafana
     networks:
       - flowers_net
-
-
+      
 networks:
   flowers_net:
