@@ -9,16 +9,18 @@ Create dataflow from sensors through database to dashboard.
 - Nginx
 - Python
     - Flask
-- RabbitMQ
-- Database - InfluxDB,
-- Visualization - Grafana
+- Kafka
+- Database 
+    - InfluxDB,
+- Visualization 
+    - Grafana
 
 
 ## Project details:
 
 Sensors will created data.
-API will be bridge to communicate with RabbitMQ.
-Python app will get data from queues and put in database.
+API will be bridge to communicate with Kafka.
+Python app will get data from Kafka and put in database.
 From data in database dashboard will create charts.
 
 ### Services
@@ -34,7 +36,8 @@ From data in database dashboard will create charts.
 - Connect consumeer with InfluxDB - DONE
 - Create Grafana conteiner - DONE
 - Connect Grafana to Influxdb - DONE
+- Change from RabbitMQ to Kafka - DONE
 - Powering PICO from batteries - IN PROGRESS
-- PICO: led informations
 - Sensors errors - IN PROGRESS
+- PICO: led informations
 - API authentication
