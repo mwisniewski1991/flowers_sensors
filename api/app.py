@@ -1,6 +1,20 @@
 from flask import Flask, request, jsonify
+from kafka import KafkaProducer
 import json
 import pika
+import logging
+import sys
+
+
+KAFKA_FLOWERS_TOPIC = "flowers_data"
+
+logger = logging.getLogger()
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stdout,
+    format="[\mwdev/] %(asctime)s %(levelname)s :::: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    )   
 
 app = Flask(__name__)
 
@@ -10,27 +24,18 @@ def index():
 
 @app.route("/sensor", methods=['GET', 'POST'])
 def sensor():
-    records = request.args
-    message = json.dumps(records)
 
-    try:    
-        connection_rabbit = pika.BlockingConnection(pika.ConnectionParameters(
-            host='rabbitmq', 
-            port=5672))
-        
-    except pika.exceptions.AMQPConnectionError:
-        return "Failed to connect to RabbitMQ service. Message wont be sent."
+    logging.info("STARTING")
+    
+    flowers_data = request.args
+    producer = KafkaProducer(bootstrap_servers='kafka:29092', value_serializer=lambda x: json.dumps(x).encode('utf-8'))
 
-    channel = connection_rabbit.channel()
-    channel.queue_declare(queue='flowers_data')
+    producer.send(
+        KAFKA_FLOWERS_TOPIC,
+        flowers_data
+    )
 
-    channel.basic_publish(
-        exchange='',
-        routing_key='flowers_data',
-        body=message                        
-    ) 
-
-    return records
+    return flowers_data
 
 
 if __name__ == '__main__':
