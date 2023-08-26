@@ -31,30 +31,32 @@ adc = ADC(26)
 conversion_factor = 100 / (65535)
 
 while True:
-    time.sleep(10)
+    time.sleep(5)
 
     led.toggle()
-    moisture = 130 - (adc.read_u16() * conversion_factor)
+    soil_moisture = 130 - (adc.read_u16() * conversion_factor)
 
     try:
-        pin = Pin(DHT_PIN_NUMBER, Pin.OUT, Pin.PULL_DOWN)
-        sensor = DHT11(pin)
-        temperature = sensor.temperature
-        humidity = sensor.humidity
+        # pin = Pin(DHT_PIN_NUMBER, Pin.OUT, Pin.PULL_DOWN)
+        # sensor = DHT11(pin)
+
+        dht11 = DHT11(Pin(28))
+        dht11.measure()
+        temperature = dht11.temperature()
+        humidity = dht11.humidity()
 
     except:
         print("ERROR FOR SENSOR")
         temperature = -1.0
         humidity = -1.0
         
-    url = API_URL + "?id=1234&name=flower_1&temeprature=" + str(temperature) + "&soil_moisture=" + str(moisture) + "&humidity=" + str(humidity) 
+    url = API_URL + "?id=1234&name=flower_1&temeprature=" + str(temperature) + "&soil_moisture=" + str(soil_moisture) + "&humidity=" + str(humidity) 
 
-    # print("-------------------------------")
-    # print("Moisture: {}".format(moisture))
+    print("-------------------------------")
+    # print("Soil moisture: {}".format(soil_moisture))
     # print("Temperature: {}".format(temperature))
     # print("Humidity: {}".format(humidity))
     
-    # print(url)
     r = urequests.get(url)
     print(r.json())
     r.close()
